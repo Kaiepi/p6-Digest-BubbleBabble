@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/Kaiepi/p6-Digest-BubbleBabble.svg?branch=master)](https://travis-ci.org/Kaiepi/p6-Digest-BubbleBabble)
+
 NAME
 ====
 

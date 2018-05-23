@@ -9,12 +9,12 @@ SYNOPSIS
 ========
 
     use Digest::BubbleBabble;
+    use Digest::MD5;
 
-    my $digest = ''.encode; # For the sake of simplicity, let's not use a real hash
+    my $blob = Blob.new(ords 'BubbleBabble is useful!');
+    my $digest = Digest::MD5::md5($blob);
     my $fingerprint = Digest::BubbleBabble.encode($digest);
-    say $fingerprint.decode; # xexax
-
-    # TODO: decoding support
+    say $fingerprint.decode; # xidez-kidoh-sucen-furyd-sodyz-gidem-doled-cezof-rexux
 
 DESCRIPTION
 ===========

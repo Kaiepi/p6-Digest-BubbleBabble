@@ -4,41 +4,41 @@ unit class Digest::BubbleBabble:ver<0.0.1>;
 constant VOWELS = <a e i o u y>;
 constant CONSONANTS = <b c d f g h k l m n p r s t v z x>;
 
-method encode(Blob $data --> Blob) {
-    my $len = $data.elems;
-    my $checksum = 1;
+method encode(Blob $digest --> Blob) {
+    my $len = $digest.elems;
+    my $seed = 1;
     my @result = 'x';
 
     for 0...^$len div 2 -> $i {
-        my $byte1 = $data[$i * 2];
+        my $byte1 = $digest[$i * 2];
         @result.push(
-            VOWELS[((($byte1 +> 6) +& 3) + $checksum) % 6],
+            VOWELS[((($byte1 +> 6) +& 3) + $seed) % 6],
             CONSONANTS[($byte1 +> 2) +& 15],
-            VOWELS[(($byte1 +& 3) + $checksum div 6) % 6]
+            VOWELS[(($byte1 +& 3) + $seed div 6) % 6]
         );
 
-        my $byte2 = $data[$i * 2 + 1];
+        my $byte2 = $digest[$i * 2 + 1];
         @result.push(
             CONSONANTS[($byte2 +> 4) +& 15],
             '-',
             CONSONANTS[$byte2 +& 15]
         );
 
-        $checksum = (($checksum * 5) + ($byte1 * 7) + $byte2) % 36;
+        $seed = (($seed * 5) + ($byte1 * 7) + $byte2) % 36;
     }
 
     if $len %% 2 {
         @result.push(
-            VOWELS[$checksum % 6],
+            VOWELS[$seed % 6],
             CONSONANTS[16],
-            VOWELS[$checksum div 6]
+            VOWELS[$seed div 6]
         );
     } else {
-        my $byte3 = $data[$len - 1];
+        my $byte3 = $digest[$len - 1];
         @result.push(
-            VOWELS[((($byte3 +> 6) +& 3) + $checksum) % 6],
+            VOWELS[((($byte3 +> 6) +& 3) + $seed) % 6],
             CONSONANTS[($byte3 +> 2) +& 15],
-            VOWELS[(($byte3 +& 3) + $checksum div 6) % 6]
+            VOWELS[(($byte3 +& 3) + $seed div 6) % 6]
         );
     }
 
@@ -47,6 +47,7 @@ method encode(Blob $data --> Blob) {
     Blob.new(@result.map: *.ord);
 }
 
+# TODO: decoding support
 method decode(Blob $fingerprint --> Blob) { ... }
 
 =begin pod
@@ -58,12 +59,12 @@ Digest::BubbleBabble - Support for BubbleBabble string encoding and decoding
 =head1 SYNOPSIS
 
   use Digest::BubbleBabble;
+  use Digest::MD5;
 
-  my $digest = ''.encode; # For the sake of simplicity, let's not use a real hash
+  my $blob = Blob.new(ords 'BubbleBabble is useful!');
+  my $digest = Digest::MD5::md5($blob);
   my $fingerprint = Digest::BubbleBabble.encode($digest);
-  say $fingerprint.decode; # xexax
-
-  # TODO: decoding support
+  say $fingerprint.decode; # xidez-kidoh-sucen-furyd-sodyz-gidem-doled-cezof-rexux
 
 =head1 DESCRIPTION
 

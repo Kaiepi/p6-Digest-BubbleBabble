@@ -1,5 +1,5 @@
 use v6.c;
-unit class Digest::BubbleBabble:ver<0.0.1>;
+unit class Digest::BubbleBabble:ver<0.0.1>:auth<github:Kaiepi>;
 
 constant VOWELS = <a e i o u y>;
 constant CONSONANTS = <b c d f g h k l m n p r s t v z x>;

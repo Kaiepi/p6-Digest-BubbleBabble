@@ -16,6 +16,9 @@ SYNOPSIS
     my $fingerprint = Digest::BubbleBabble.encode($digest);
     say $fingerprint.decode; # xidez-kidoh-sucen-furyd-sodyz-gidem-doled-cezof-rexux
 
+    $digest = Digest::BubbleBabble.decode($fingerprint);
+    say $digest.decode; # BubbleBabble is useful!
+
 DESCRIPTION
 ===========
 
@@ -28,10 +31,14 @@ METHODS
 
 Returns the given digest blob, encoded as a BubbleBabble fingerprint.
 
+  * **Digest::BubbleBabble.decode**(Blob *$fingerprint* --> Blob)
+
+Returns the decoded BubbleBabble fingerprint blob.
+
 AUTHOR
 ======
 
-Ben Davies <kaiepi@outlook.com>
+Ben Davies (kaiepi)
 
 COPYRIGHT AND LICENSE
 =====================

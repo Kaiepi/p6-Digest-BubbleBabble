@@ -2,13 +2,28 @@ use v6.c;
 use Test;
 use Digest::BubbleBabble;
 
-plan 1;
+plan 2;
 
-subtest 'Encodings' => {
-	plan 3;
-	my @encodings = ['', 'Pineapple', '1234567890'].map({ Blob.new($_.ords) });
-	my @encoded   = ['xexax', 'xigak-nyryk-humil-bosek-sonax', 'xesef-disof-gytuf-katof-movif-baxux'];
-	for @encodings Z @encoded -> ($digest, $fingerprint) {
-		is Digest::BubbleBabble.encode($digest).decode, $fingerprint, "Encoding '{$digest.decode}' gives the wrong fingerprint!";
-	}
+my %tests = (
+    ''           => 'xexax',
+    'Pineapple'  => 'xigak-nyryk-humil-bosek-sonax',
+    '1234567890' => 'xesef-disof-gytuf-katof-movif-baxux'
+);
+
+subtest 'Encoding' => {
+    plan +%tests * 2;
+    for %tests.kv -> $digest, $fingerprint {
+        my $result;
+        lives-ok { $result = Digest::BubbleBabble.encode(Blob.new: ords $digest) }, "Encoding '$digest' fails";
+        is $result.decode, $fingerprint, "Encoding '$digest' gives the wrong fingerprint";
+    }
+}
+
+subtest 'Decoding' => {
+    plan +%tests * 2;
+    for %tests.kv -> $digest, $fingerprint {
+        my $result;
+        lives-ok { $result = Digest::BubbleBabble.decode(Blob.new: ords $fingerprint) }, "Decoding '$fingerprint' fails";
+        is $result.decode, $digest, "Decoding '$fingerprint' gives the wrong digest";
+    }
 }

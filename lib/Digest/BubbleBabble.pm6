@@ -10,58 +10,58 @@ class X::Digest::BubbleBabble::Decode is Exception {
 
 constant VOWELS     = <a e i o u y>».ord;
 constant CONSONANTS = <b c d f g h k l m n p r s t v z x>».ord;
+constant ORD_X      = ord 'x';
+constant ORD_HYPHEN = ord '-';
+constant ORDER      = [VOWELS, CONSONANTS, VOWELS, CONSONANTS, [], CONSONANTS];
 
 method encode(Blob $digest --> Blob) {
     my $len    = $digest.elems;
     my $seed   = 1;
-    my @result = ord 'x';
+    Blob.new: gather for 0,2,4...$len -> $i {
+        FIRST take ORD_X;
 
-    for 0..^$len div 2 -> $i {
-        my $byte1 = $digest[$i * 2];
-        @result.push(VOWELS[((($byte1 +> 6) +& 3) + $seed) % 6]);
-        @result.push(CONSONANTS[($byte1 +> 2) +& 15]);
-        @result.push(VOWELS[(($byte1 +& 3) + $seed div 6) % 6]);
+        # We do this instead of using ^$len in the loop's range because this
+        # allows empty buffers to get encoded properly.
+        last if $i >= $len - 1;
 
-        my $byte2 = $digest[$i * 2 + 1];
-        @result.push(CONSONANTS[($byte2 +> 4) +& 15]);
-        @result.push(ord '-');
-        @result.push(CONSONANTS[$byte2 +& 15]);
+        my Int $byte1 = $digest[$i];
+        take VOWELS[(($byte1 +> 6 +& 3) + $seed) % 6];
+        take CONSONANTS[$byte1 +> 2 +& 15];
+        take VOWELS[(($byte1 +& 3) + $seed div 6) % 6];
 
-        $seed = (($seed * 5) + ($byte1 * 7) + $byte2) % 36;
+        my Int $byte2 = $digest[$i + 1];
+        take CONSONANTS[$byte2 +> 4 +& 15];
+        take ORD_HYPHEN;
+        take CONSONANTS[$byte2 +& 15];
+
+        $seed = ($seed * 5 + $byte1 * 7 + $byte2) % 36;
+
+        LAST {
+            if $len %% 2 {
+                take VOWELS[$seed % 6];
+                take ORD_X;
+                take VOWELS[$seed div 6];
+                take ORD_X;
+            } else {
+                my Int $byte = $digest.tail;
+                take VOWELS[(($byte +> 6 +& 3) + $seed) % 6];
+                take CONSONANTS[$byte +> 2 +& 15];
+                take VOWELS[(($byte +& 3) + $seed div 6) % 6];
+                take ORD_X;
+            }
+        }
     }
-
-    if $len %% 2 {
-        @result.push(VOWELS[$seed % 6]);
-        @result.push(CONSONANTS[16]);
-        @result.push(VOWELS[$seed div 6]);
-    } else {
-        my $byte3 = $digest[$len - 1];
-        @result.push(VOWELS[((($byte3 +> 6) +& 3) + $seed) % 6]);
-        @result.push(CONSONANTS[($byte3 +> 2) +& 15]);
-        @result.push(VOWELS[(($byte3 +& 3) + $seed div 6) % 6]);
-    }
-
-    @result.push(ord 'x');
-
-    Blob.new(@result)
 }
 
-method !decode-tuple(@tuple --> Array[Int]) {
-    my Int @decoded = [
-        VOWELS.first(@tuple[0], :k),
-        CONSONANTS.first(@tuple[1], :k),
-        VOWELS.first(@tuple[2], :k)
-    ];
-
-    if +@tuple > 3 {
-        @decoded.push(CONSONANTS.first(@tuple[3], :k));
-        @decoded.push(CONSONANTS.first(@tuple[5], :k));
+method !decode-tuple(@tuple --> Seq) {
+    gather for @tuple.kv -> $i, $byte {
+        take ORDER[$i].first($byte, :k);
     }
-
-    @decoded
 };
 
-method !decode-byte-double(Int $byte1, Int $byte2, Int $pos --> Int) {
+method !decode-byte-double(@double, Int $pos --> Int) {
+    my Int ($byte1, $byte2) = @double;
+
     X::Digest::BubbleBabble::Decode.new(
         error => "invalid byte at offset $pos"
     ).throw if $byte1 > 16;
@@ -73,18 +73,20 @@ method !decode-byte-double(Int $byte1, Int $byte2, Int $pos --> Int) {
     $byte1 +< 4 +| $byte2
 }
 
-method !decode-byte-triple(Int $byte1, Int $byte2, Int $byte3, Int $seed, Int $pos --> Int) {
-    my $high = ($byte1 - ($seed % 6) + 6) % 6;
+method !decode-byte-triple(@triple, Int $seed, Int $pos --> Int) {
+    my Int ($high, $mid, $low) = @triple;
+
+    $high = ($high - ($seed % 6) + 6) % 6;
     X::Digest::BubbleBabble::Decode.new(
         error => "invalid byte at offset $pos"
     ).throw if $high >= 4;
 
-    my $mid = $byte2;
+    # Do nothing with $mid.
     X::Digest::BubbleBabble::Decode.new(
         error => "invalid byte at offset {$pos + 1}"
     ).throw if $mid > 16;
 
-    my $low = ($byte3 - ($seed div 6 % 6) + 6) % 6;
+    $low = ($low - ($seed div 6 % 6) + 6) % 6;
     X::Digest::BubbleBabble::Decode.new(
         error => "invalid byte at offset {$pos + 2}"
     ).throw if $low >= 4;
@@ -95,44 +97,40 @@ method !decode-byte-triple(Int $byte1, Int $byte2, Int $byte3, Int $seed, Int $p
 method decode(Blob $fingerprint --> Blob) {
     X::Digest::BubbleBabble::Decode.new(
         error => "must start with x"
-    ).throw if $fingerprint.head != ord 'x';
-
+    ).throw if $fingerprint.head != ORD_X;
     X::Digest::BubbleBabble::Decode.new(
         error => "must end with x"
-    ).throw if $fingerprint.tail != ord 'x';
-
+    ).throw if $fingerprint.tail != ORD_X;
     X::Digest::BubbleBabble::Decode.new(
         error => "invalid fingerprint length"
     ).throw if +$fingerprint % 6 != 5;
 
     my @tuples = $fingerprint.contents[1..^*-1].rotor(6, :partial);
-    my $seed   = 1;
-    my @result;
-    for 0..^+@tuples -> $i {
-        my @tuple = self!decode-tuple: @tuples[$i];
-        my $pos   = $i * 6;
-        if $i == +@tuples - 1 {
-            if @tuple[1] == 16 {
-                X::Digest::BubbleBabble::Decode.new(
-                    error => "invalid byte at offset $pos"
-                ).throw if @tuple[0] != $seed % 6;
+    my Int $seed = 1;
+    Blob.new: gather for @tuples.kv -> $i, @tuple {
+        my Int @bytes = self!decode-tuple(@tuple).grep(Int:D);
+        last if +@bytes < 5;
 
+        my Int $pos = $i * 6;
+        take my Int $byte1 = self!decode-byte-triple(@bytes[0..2], $seed, $pos);
+        take my Int $byte2 = self!decode-byte-double(@bytes[3..*], $pos);
+        $seed = ($seed * 5 + $byte1 * 7 + $byte2) % 36;
+
+        LAST {
+            if @bytes.first(16, :k) eqv 1 {
+                # Don't attempt to decode; these bytes don't contain any
+                # information about the unencoded string.
                 X::Digest::BubbleBabble::Decode.new(
                     error => "invalid byte at offset $pos"
-                ).throw if @tuple[2] != $seed div 6;
+                ).throw if @bytes.head != $seed % 6;
+                X::Digest::BubbleBabble::Decode.new(
+                    error => "invalid byte at offset $pos"
+                ).throw if @bytes.tail != $seed div 6;
             } else {
-                my $byte = self!decode-byte-triple(@tuple[0], @tuple[1], @tuple[2], $seed, $pos);
-                @result.push($byte);
+                take self!decode-byte-triple(@bytes, $seed, $pos);
             }
-        } else {
-            my $byte1 = self!decode-byte-triple(@tuple[0], @tuple[1], @tuple[2], $seed, $pos);
-            my $byte2 = self!decode-byte-double(@tuple[3], @tuple[4], $pos);
-            @result.push($byte1, $byte2);
-            $seed = ($seed * 5 + $byte1 * 7 + $byte2) % 36;
         }
     }
-
-    Blob.new(@result);
 }
 
 =begin pod
@@ -153,6 +151,11 @@ Digest::BubbleBabble - Support for BubbleBabble string encoding and decoding
 
   $digest = Digest::BubbleBabble.decode($fingerprint);
   say $digest.decode; # BubbleBabble is useful!
+  CATCH {
+      when X::Digest::BubbleBabble::Decode {
+          # Thrown when decoding an invalid BubbleBabble fingerprint.
+      }
+  }
 
 =head1 DESCRIPTION
 

@@ -14,7 +14,7 @@ subtest 'Encoding' => {
     plan +%tests * 2;
     for %tests.kv -> $digest, $fingerprint {
         my $result;
-        lives-ok { $result = Digest::BubbleBabble.encode(Blob.new: ords $digest) }, "Encoding '$digest' fails";
+        lives-ok { $result = Digest::BubbleBabble.encode($digest.encode) }, "Encoding '$digest' fails";
         is $result.decode, $fingerprint, "Encoding '$digest' gives the wrong fingerprint";
     }
 }
@@ -23,7 +23,7 @@ subtest 'Decoding' => {
     plan +%tests * 2;
     for %tests.kv -> $digest, $fingerprint {
         my $result;
-        lives-ok { $result = Digest::BubbleBabble.decode(Blob.new: ords $fingerprint) }, "Decoding '$fingerprint' fails";
+        lives-ok { $result = Digest::BubbleBabble.decode($fingerprint.encode) }, "Decoding '$fingerprint' fails";
         is $result.decode, $digest, "Decoding '$fingerprint' gives the wrong digest";
     }
 }

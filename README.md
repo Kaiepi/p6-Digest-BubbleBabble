@@ -18,6 +18,14 @@ SYNOPSIS
 
     $digest = Digest::BubbleBabble.decode($fingerprint);
     say $digest.decode; # BubbleBabble is useful!
+    CATCH {
+        when X::Digest::BubbleBabble::Decode {
+            # Thrown when decoding an invalid BubbleBabble fingerprint.
+        }
+    }
+
+    say Digest::BubbleBabble.validate('xexax'.encode);        # True
+    say Digest::BubbleBabble.validate('YXl5IGxtYW8K'.encode); # False
 
 DESCRIPTION
 ===========
@@ -33,7 +41,11 @@ Returns the given digest blob, encoded as a BubbleBabble fingerprint.
 
   * **Digest::BubbleBabble.decode**(Blob *$fingerprint* --> Blob)
 
-Returns the decoded BubbleBabble fingerprint blob.
+Returns the decoded BubbleBabble fingerprint blob. This throws an `X::Digest::BubbleBabble::Decode` exception if the fingerprint provided does not follow BubbleBabble encoding.
+
+  * **Digest::BubbleBabble.validate**(Blob *$fingerprint* --> Bool)
+
+This validates whether or not a fingerprint uses valid BubbleBabble encoding. Returns `True` when the fingerprint is valid, and `False` otherwise.
 
 AUTHOR
 ======

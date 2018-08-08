@@ -105,7 +105,7 @@ method decode(Blob $fingerprint --> Blob) {
         error => "invalid fingerprint length"
     ).throw if +$fingerprint % 6 != 5;
 
-    my @tuples = $fingerprint.contents[1..^*-1].rotor(6, :partial);
+    my @tuples = $fingerprint[1..^*].rotor(6, :partial);
     my Int $seed = 1;
     Blob.new: gather for @tuples.kv -> $i, @tuple {
         my Int @bytes = self!decode-tuple(@tuple).grep(Int:D);
@@ -133,6 +133,49 @@ method decode(Blob $fingerprint --> Blob) {
     }
 }
 
+method validate(Blob $fingerprint --> Bool) {
+    return False if ($fingerprint.head != ORD_X);
+    return False if ($fingerprint.tail != ORD_X);
+    return False if (+$fingerprint % 6 != 5);
+
+    my Int $seed   = 1;
+    my     @tuples = $fingerprint[1..^*].rotor(6, :partial);
+    for @tuples -> @tuple {
+        my Int @bytes = self!decode-tuple(@tuple).grep(Int:D);
+        if +@bytes >= 5 {
+            my Int $high = (@bytes[0] - ($seed % 6) + 6) % 6;
+            return False if $high >= 4;
+            my Int $mid  = @bytes[1];
+            return False if $mid > 16;
+            my Int $low  = (@bytes[2] - ($seed div 6 % 6) + 6) % 6;
+            return False if $low >= 4;
+
+            my Int $upper = @bytes[3];
+            return False if $upper > 16;
+            my Int $lower = @bytes[4];
+            return False if $lower > 16;
+
+            my $byte1 = $high +< 6 +| $mid +< 2 +| $low;
+            my $byte2 = $upper +< 4 +| $lower;
+            $seed = ($seed * 5 + $byte1 * 7 + $byte2) % 36;
+        } else {
+            if @bytes[1] == 16 {
+                return False if @bytes[0] != $seed % 6;
+                return False if @bytes[2] != $seed div 6;
+            } else {
+                my $high = (@bytes[0] - ($seed % 6) + 6) % 6;
+                return False if $high >= 4;
+                my $mid  = @bytes[1];
+                return False if $mid > 16;
+                my $low  = (@bytes[2] - ($seed div 6 % 6) + 6) % 6;
+                return False if $low >= 4;
+            }
+        }
+    }
+
+    True
+}
+
 =begin pod
 
 =head1 NAME
@@ -157,6 +200,9 @@ Digest::BubbleBabble - Support for BubbleBabble string encoding and decoding
       }
   }
 
+  say Digest::BubbleBabble.validate('xexax'.encode);        # True
+  say Digest::BubbleBabble.validate('YXl5IGxtYW8K'.encode); # False
+
 =head1 DESCRIPTION
 
 Digest::BubbleBabble is a way of encoding digests in such a way that it can be
@@ -171,7 +217,14 @@ Returns the given digest blob, encoded as a BubbleBabble fingerprint.
 
 =item B<Digest::BubbleBabble.decode>(Blob I<$fingerprint> --> Blob)
 
-Returns the decoded BubbleBabble fingerprint blob.
+Returns the decoded BubbleBabble fingerprint blob. This throws an
+C<X::Digest::BubbleBabble::Decode> exception if the fingerprint provided does
+not follow BubbleBabble encoding.
+
+=item B<Digest::BubbleBabble.validate>(Blob I<$fingerprint> --> Bool)
+
+This validates whether or not a fingerprint uses valid BubbleBabble encoding.
+Returns C<True> when the fingerprint is valid, and C<False> otherwise.
 
 =head1 AUTHOR
 

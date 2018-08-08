@@ -8,8 +8,8 @@ class X::Digest::BubbleBabble::Decode is Exception {
     }
 }
 
-constant VOWELS     = <a e i o u y>;
-constant CONSONANTS = <b c d f g h k l m n p r s t v z x>;
+constant VOWELS     = <a e i o u y>».ord;
+constant CONSONANTS = <b c d f g h k l m n p r s t v z x>».ord;
 
 method encode(Blob $digest --> Blob) {
     my $len    = $digest.elems;
@@ -18,27 +18,27 @@ method encode(Blob $digest --> Blob) {
 
     for 0..^$len div 2 -> $i {
         my $byte1 = $digest[$i * 2];
-        @result.push(ord VOWELS[((($byte1 +> 6) +& 3) + $seed) % 6]);
-        @result.push(ord CONSONANTS[($byte1 +> 2) +& 15]);
-        @result.push(ord VOWELS[(($byte1 +& 3) + $seed div 6) % 6]);
+        @result.push(VOWELS[((($byte1 +> 6) +& 3) + $seed) % 6]);
+        @result.push(CONSONANTS[($byte1 +> 2) +& 15]);
+        @result.push(VOWELS[(($byte1 +& 3) + $seed div 6) % 6]);
 
         my $byte2 = $digest[$i * 2 + 1];
-        @result.push(ord CONSONANTS[($byte2 +> 4) +& 15]);
+        @result.push(CONSONANTS[($byte2 +> 4) +& 15]);
         @result.push(ord '-');
-        @result.push(ord CONSONANTS[$byte2 +& 15]);
+        @result.push(CONSONANTS[$byte2 +& 15]);
 
         $seed = (($seed * 5) + ($byte1 * 7) + $byte2) % 36;
     }
 
     if $len %% 2 {
-        @result.push(ord VOWELS[$seed % 6]);
-        @result.push(ord CONSONANTS[16]);
-        @result.push(ord VOWELS[$seed div 6]);
+        @result.push(VOWELS[$seed % 6]);
+        @result.push(CONSONANTS[16]);
+        @result.push(VOWELS[$seed div 6]);
     } else {
         my $byte3 = $digest[$len - 1];
-        @result.push(ord VOWELS[((($byte3 +> 6) +& 3) + $seed) % 6]);
-        @result.push(ord CONSONANTS[($byte3 +> 2) +& 15]);
-        @result.push(ord VOWELS[(($byte3 +& 3) + $seed div 6) % 6]);
+        @result.push(VOWELS[((($byte3 +> 6) +& 3) + $seed) % 6]);
+        @result.push(CONSONANTS[($byte3 +> 2) +& 15]);
+        @result.push(VOWELS[(($byte3 +& 3) + $seed div 6) % 6]);
     }
 
     @result.push(ord 'x');
@@ -109,7 +109,7 @@ method decode(Blob $fingerprint --> Blob) {
     my $seed   = 1;
     my @result;
     for 0..^+@tuples -> $i {
-        my @tuple = self!decode-tuple(@tuples[$i]>>.chr);
+        my @tuple = self!decode-tuple: @tuples[$i];
         my $pos   = $i * 6;
         if $i == +@tuples - 1 {
             if @tuple[1] == 16 {

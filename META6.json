@@ -12,8 +12,8 @@
     "Digest::BubbleBabble" : "lib/Digest/BubbleBabble.pm6"
   },
   "resources" : [ ],
-  "source-url" : "git@github.com:Kaiepi/p6-Digest-BubbleBabble.git",
+  "source-url" : "https://github.com/Kaiepi/p6-Digest-BubbleBabble.git",
   "tags" : [ ],
   "test-depends" : [ ],
-  "version" : "0.0.1"
+  "version" : "0.0.2"
 }

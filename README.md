@@ -9,20 +9,13 @@ SYNOPSIS
 ========
 
     use Digest::BubbleBabble;
-    use Digest::MD5;
 
-    my $blob = Blob.new(ords 'BubbleBabble is useful!');
-    my $digest = Digest::MD5::md5($blob);
+    my $digest = 'BubbleBabble is useful!'.encode;
     my $fingerprint = Digest::BubbleBabble.encode($digest);
     say $fingerprint.decode; # xidez-kidoh-sucen-furyd-sodyz-gidem-doled-cezof-rexux
 
     $digest = Digest::BubbleBabble.decode($fingerprint);
     say $digest.decode; # BubbleBabble is useful!
-    CATCH {
-        when X::Digest::BubbleBabble::Decode {
-            # Thrown when decoding an invalid BubbleBabble fingerprint.
-        }
-    }
 
     say Digest::BubbleBabble.validate('xexax'.encode);        # True
     say Digest::BubbleBabble.validate('YXl5IGxtYW8K'.encode); # False

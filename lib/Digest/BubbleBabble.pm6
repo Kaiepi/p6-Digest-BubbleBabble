@@ -1,6 +1,13 @@
 use v6.c;
 unit class Digest::BubbleBabble:ver<0.0.1>:auth<github:Kaiepi>;
 
+class X::Digest::BubbleBabble::Decode is Exception {
+    has Str $.error;
+    method message(--> Str) {
+        "Failed to decode fingerprint: $!error"
+    }
+}
+
 constant VOWELS     = <a e i o u y>;
 constant CONSONANTS = <b c d f g h k l m n p r s t v z x>;
 
@@ -36,7 +43,7 @@ method encode(Blob $digest --> Blob) {
 
     @result.push(ord 'x');
 
-    Blob.new(@result);
+    Blob.new(@result)
 }
 
 method !decode-tuple(@tuple --> Array[Int]) {
@@ -51,31 +58,52 @@ method !decode-tuple(@tuple --> Array[Int]) {
         @decoded.push(CONSONANTS.first(@tuple[5], :k));
     }
 
-    @decoded;
+    @decoded
 };
 
 method !decode-byte-double(Int $byte1, Int $byte2, Int $pos --> Int) {
-    die "Invalid fingerprint at offset $pos"       if $byte1 > 16;
-    die "Invalid fingerprint at offset {$pos + 2}" if $byte2 > 16;
+    X::Digest::BubbleBabble::Decode.new(
+        error => "invalid byte at offset $pos"
+    ).throw if $byte1 > 16;
 
-    ($byte1 +< 4) +| $byte2;
+    X::Digest::BubbleBabble::Decode.new(
+        error => "invalid byte at offset {$pos + 2}"
+    ).throw if $byte2 > 16;
+
+    $byte1 +< 4 +| $byte2
 }
 
 method !decode-byte-triple(Int $byte1, Int $byte2, Int $byte3, Int $seed, Int $pos --> Int) {
     my $high = ($byte1 - ($seed % 6) + 6) % 6;
-    die "Invalid fingerprint at offset $pos" if $high >= 4;
+    X::Digest::BubbleBabble::Decode.new(
+        error => "invalid byte at offset $pos"
+    ).throw if $high >= 4;
+
     my $mid = $byte2;
-    die "Invalid fingerprint at offset {$pos + 1}" if $mid > 16;
+    X::Digest::BubbleBabble::Decode.new(
+        error => "invalid byte at offset {$pos + 1}"
+    ).throw if $mid > 16;
+
     my $low = ($byte3 - ($seed div 6 % 6) + 6) % 6;
-    die "Invalid fingerprint at offset {$pos + 2}" if $low >= 4;
+    X::Digest::BubbleBabble::Decode.new(
+        error => "invalid byte at offset {$pos + 2}"
+    ).throw if $low >= 4;
 
     $high +< 6 +| $mid +< 2 +| $low;
 }
 
 method decode(Blob $fingerprint --> Blob) {
-    die 'Invalid fingerprint: must start with x' if $fingerprint.head != ord 'x';
-    die 'Invalid fingerprint: must end with x'   if $fingerprint.tail != ord 'x';
-    die 'Invalid fingerprint: invalid length'    if +$fingerprint % 6 != 5;
+    X::Digest::BubbleBabble::Decode.new(
+        error => "must start with x"
+    ).throw if $fingerprint.head != ord 'x';
+
+    X::Digest::BubbleBabble::Decode.new(
+        error => "must end with x"
+    ).throw if $fingerprint.tail != ord 'x';
+
+    X::Digest::BubbleBabble::Decode.new(
+        error => "invalid fingerprint length"
+    ).throw if +$fingerprint % 6 != 5;
 
     my @tuples = $fingerprint.contents[1..^*-1].rotor(6, :partial);
     my $seed   = 1;
@@ -85,8 +113,13 @@ method decode(Blob $fingerprint --> Blob) {
         my $pos   = $i * 6;
         if $i == +@tuples - 1 {
             if @tuple[1] == 16 {
-                die "Invalid fingerprint at offset $pos"       if @tuple[0] != $seed % 6;
-                die "Invalid fingerprint at offset {$pos + 2}" if @tuple[2] != $seed div 6;
+                X::Digest::BubbleBabble::Decode.new(
+                    error => "invalid byte at offset $pos"
+                ).throw if @tuple[0] != $seed % 6;
+
+                X::Digest::BubbleBabble::Decode.new(
+                    error => "invalid byte at offset $pos"
+                ).throw if @tuple[2] != $seed div 6;
             } else {
                 my $byte = self!decode-byte-triple(@tuple[0], @tuple[1], @tuple[2], $seed, $pos);
                 @result.push($byte);

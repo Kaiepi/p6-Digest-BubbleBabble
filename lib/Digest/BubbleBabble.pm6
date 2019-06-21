@@ -105,7 +105,7 @@ method decode(Blob $fingerprint --> Blob) {
         error => "invalid fingerprint length"
     ).throw if +$fingerprint % 6 != 5;
 
-    my @tuples = $fingerprint[1..^*].rotor(6, :partial);
+    my @tuples = $fingerprint[1..*-2].rotor(6, :partial);
     my Int $seed = 1;
     Blob.new: gather for @tuples.kv -> $i, @tuple {
         my Int @bytes = self!decode-tuple(@tuple).grep(Int:D);
@@ -139,7 +139,7 @@ method validate(Blob $fingerprint --> Bool) {
     return False if (+$fingerprint % 6 != 5);
 
     my Int $seed   = 1;
-    my     @tuples = $fingerprint[1..^*].rotor(6, :partial);
+    my     @tuples = $fingerprint[1..*-2].rotor(6, :partial);
     for @tuples -> @tuple {
         my Int @bytes = self!decode-tuple(@tuple).grep(Int:D);
         if +@bytes >= 5 {

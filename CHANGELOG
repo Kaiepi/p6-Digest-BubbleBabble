@@ -7,3 +7,9 @@ v0.0.2:
 - Implemented validation support
 - Decoding now throws X::Digest::BubbleBabble::Decode if the fingerprint
   doesn't match BubbleBabble encoding.
+
+v0.0.3:
+
+- AlexDaniel fixed a bug where ^* was used to get the second last element of
+lists when technically that working at all was a bug and doesn't work in
+newer versions of Rakudo.
